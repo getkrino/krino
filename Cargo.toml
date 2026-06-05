@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "krino",
+    "krino-api",
+    "krino-api-types",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+authors = ["Justin Smith"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/smithjustinm/krino"
+homepage = "https://github.com/smithjustinm/krino"
+
+# Member crates inherit these via `version.workspace = true`, etc.
+[workspace.dependencies]
+# (Dependencies will be added when source moves over in the next chunk.)
