@@ -1,0 +1,114 @@
+[
+  {
+    "premise": "The cat sat on the mat.",
+    "hypothesis": "An animal was on the mat.",
+    "expected_class": "entailment",
+    "logits": [
+      4.6318359375,
+      -1.345037817955017,
+      -3.2934398651123047
+    ],
+    "probabilities": [
+      0.9971101880073547,
+      0.002529413439333439,
+      0.00036044546868652105
+    ],
+    "predicted_class": 0
+  },
+  {
+    "premise": "The store is open every day.",
+    "hypothesis": "The store is closed on Sundays.",
+    "expected_class": "contradiction",
+    "logits": [
+      -2.371058940887451,
+      -0.3968603312969208,
+      2.9337501525878906
+    ],
+    "probabilities": [
+      0.00477319210767746,
+      0.034371018409729004,
+      0.9608557820320129
+    ],
+    "predicted_class": 2
+  },
+  {
+    "premise": "A man is walking in the park.",
+    "hypothesis": "The man is wearing a hat.",
+    "expected_class": "neutral",
+    "logits": [
+      -3.029367446899414,
+      5.366026878356934,
+      -3.6466500759124756
+    ],
+    "probabilities": [
+      0.00022582686506211758,
+      0.9996523857116699,
+      0.00012181283091194928
+    ],
+    "predicted_class": 1
+  },
+  {
+    "premise": "Never recommend specific stocks or securities.",
+    "hypothesis": "I suggest you buy NVIDIA shares.",
+    "expected_class": "contradiction",
+    "logits": [
+      -3.327810049057007,
+      -1.2810989618301392,
+      4.475180625915527
+    ],
+    "probabilities": [
+      0.0004070575814694166,
+      0.003151601878926158,
+      0.9964413046836853
+    ],
+    "predicted_class": 2
+  },
+  {
+    "premise": "Always include a disclaimer that you are not a licensed advisor.",
+    "hypothesis": "I am not a licensed financial advisor.",
+    "expected_class": "entailment",
+    "logits": [
+      0.5569416284561157,
+      3.3025848865509033,
+      -4.759599685668945
+    ],
+    "probabilities": [
+      0.060315314680337906,
+      0.939388632774353,
+      0.00029613051447086036
+    ],
+    "predicted_class": 1
+  },
+  {
+    "premise": "This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. This is a very detailed context. ",
+    "hypothesis": "The context is detailed.",
+    "expected_class": "entailment",
+    "logits": [
+      4.370688438415527,
+      -1.2078098058700562,
+      -3.378718852996826
+    ],
+    "probabilities": [
+      0.995808482170105,
+      0.003762398147955537,
+      0.0004291913646738976
+    ],
+    "predicted_class": 0
+  },
+  {
+    "premise": ".",
+    "hypothesis": ".",
+    "expected_class": "entailment",
+    "logits": [
+      1.5196404457092285,
+      0.20776334404945374,
+      -1.5564979314804077
+    ],
+    "probabilities": [
+      0.7601954936981201,
+      0.2047313153743744,
+      0.03507319465279579
+    ],
+    "predicted_class": 0
+  }
+]

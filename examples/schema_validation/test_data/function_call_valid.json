@@ -1,0 +1,13 @@
+{
+  "function": "search_products",
+  "parameters": {
+    "query": "wireless headphones",
+    "category": "electronics",
+    "max_price": 200,
+    "min_rating": 4.0
+  },
+  "metadata": {
+    "confidence": 0.95,
+    "reasoning": "User explicitly requested wireless headphones in the electronics category with a budget constraint"
+  }
+}

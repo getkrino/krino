@@ -15,6 +15,26 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/smithjustinm/krino"
 homepage = "https://github.com/smithjustinm/krino"
 
-# Member crates inherit these via `version.workspace = true`, etc.
 [workspace.dependencies]
-# (Dependencies will be added when source moves over in the next chunk.)
+krino-api-types = { path = "krino-api-types" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+sha2 = "0.10"
+hex = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1.0", features = ["sync", "time", "rt", "macros", "signal"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"
