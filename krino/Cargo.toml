@@ -1,0 +1,126 @@
+[package]
+name = "krino"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Deterministic LLM evaluation engine. Verifies LLM outputs against context using purpose-built NLI models — no LLM-as-judge."
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["llm", "evaluation", "nlp", "hallucination", "groundedness"]
+categories = ["science", "text-processing"]
+
+[lib]
+name = "krino"
+path = "src/lib.rs"
+
+[[bin]]
+name = "krino"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[[example]]
+name = "groundedness_onnx"
+path = "../examples/groundedness_onnx.rs"
+
+[[example]]
+name = "01_basic_text_verification"
+path = "../examples/policy_compliance/01_basic_text_verification.rs"
+
+[[example]]
+name = "02_tool_call_guard"
+path = "../examples/policy_compliance/02_tool_call_guard.rs"
+
+[[example]]
+name = "03_dual_layer_defense"
+path = "../examples/policy_compliance/03_dual_layer_defense.rs"
+
+[dependencies]
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Hashing for reproducibility
+sha2.workspace = true
+hex.workspace = true
+
+# CLI (optional)
+clap = { version = "4.5", features = ["derive"], optional = true }
+
+# Date/time
+chrono.workspace = true
+
+# ML inference (Candle)
+candle-core = "0.8"
+candle-nn = "0.8"
+candle-transformers = "0.8"
+
+# Tokenization
+tokenizers = "0.21"
+
+# Model loading
+safetensors = "0.4"
+hf-hub = "0.3"
+bytemuck = "1.14"
+half = "2.4"
+ort = { version = "2.0.0-rc.12", features = ["download-binaries"] }
+jsonschema = "0.45.0"
+
+# Regex for policy parsing
+regex = "1.11"
+
+# Async dependencies for robustness scoring
+async-trait = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+tokio.workspace = true
+
+# Optimized linear algebra for embedding similarity
+ndarray = "0.17.2"
+
+# Data parallelism for NLI session pool
+rayon = "1.10"
+
+[dev-dependencies]
+# Testing
+proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+insta = { version = "1.34", features = ["json"] }
+tempfile = "3.8"
+
+[features]
+default = []
+cli = ["dep:clap"]
+cuda = ["candle-core/cuda"]
+metal = ["candle-core/metal"]
+
+[[bench]]
+name = "groundedness"
+harness = false
+
+[[bench]]
+name = "hallucination"
+harness = false
+
+[[bench]]
+name = "onnx_inference"
+harness = false
+
+[[bench]]
+name = "policy_compliance"
+harness = false
+
+[[bench]]
+name = "schema_validation"
+harness = false
+
+[lints.clippy]
+too_many_lines = "allow"

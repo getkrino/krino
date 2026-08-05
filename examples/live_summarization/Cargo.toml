@@ -1,0 +1,42 @@
+[workspace]
+
+[package]
+name = "live_summarization"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "live_summarization"
+path = "src/main.rs"
+
+[[bin]]
+name = "benchmark"
+path = "src/bin/benchmark.rs"
+
+[dependencies]
+# Local Krino library (used by benchmark for local baseline)
+krino = { path = "../../krino" }
+
+# HTTP client (for fetching web pages and Claude API)
+reqwest = { version = "0.12", features = ["json"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Timestamps for benchmark reports
+chrono = { version = "0.4", features = ["clock"] }

@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          # ~/.cache/dfbin is where ort-sys' `download-binaries` feature
+          # stashes the prebuilt libonnxruntime.a. If target/ is restored
+          # but dfbin isn't, ort-sys' fingerprint reports "already built"
+          # while the linker can no longer find the static lib — fails
+          # with "could not find native static library `onnxruntime`".
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/dfbin
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-v3
+          restore-keys: |
+            ${{ runner.os }}-cargo-v3-
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@cargo-nextest   
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+
+      - name: Run Tests
+        run: cargo nextest run --workspace
+
+      - name: Run Doc Tests
+        run: cargo test --doc --workspace

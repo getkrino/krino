@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LLM Function Call Schema",
+  "description": "Validates LLM-generated function calls with parameters",
+  "type": "object",
+  "properties": {
+    "function": {
+      "type": "string",
+      "enum": [
+        "search_products",
+        "create_order",
+        "update_user",
+        "send_email",
+        "get_weather"
+      ],
+      "description": "Name of the function to call"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Function-specific parameters"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reasoning": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    }
+  },
+  "required": ["function", "parameters"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "function": "search_products",
+      "parameters": {
+        "query": "wireless headphones",
+        "category": "electronics",
+        "max_price": 200
+      },
+      "metadata": {
+        "confidence": 0.95,
+        "reasoning": "User explicitly asked for wireless headphones"
+      }
+    },
+    {
+      "function": "send_email",
+      "parameters": {
+        "to": "user@example.com",
+        "subject": "Order Confirmation",
+        "body": "Your order has been confirmed."
+      }
+    }
+  ]
+}

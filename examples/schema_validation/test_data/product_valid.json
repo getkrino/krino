@@ -1,0 +1,25 @@
+{
+  "id": "PROD12345",
+  "name": "Wireless Bluetooth Headphones",
+  "description": "Premium noise-cancelling wireless headphones with 30-hour battery life. Features active noise cancellation, comfortable ear cushions, and high-fidelity audio.",
+  "price": 149.99,
+  "currency": "USD",
+  "category": "electronics",
+  "tags": ["wireless", "bluetooth", "headphones", "audio", "noise-cancelling"],
+  "inventory": {
+    "quantity": 150,
+    "warehouse": "US-WEST",
+    "reserved": 12
+  },
+  "images": [
+    "https://example.com/images/headphones-front.jpg",
+    "https://example.com/images/headphones-side.jpg"
+  ],
+  "specifications": {
+    "battery_life": "30 hours",
+    "connectivity": "Bluetooth 5.0",
+    "weight": "250g",
+    "color": "Black"
+  },
+  "available": true
+}
