@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 CMD_ID="${1:-}"
-INSTANCE="i-01417860b4edff2d8"
-REGION="us-east-1"
+INSTANCE="${2:-}"
+REGION="${AWS_REGION:-us-east-1}"
 
-if [[ -z "$CMD_ID" ]]; then
-    echo "Usage: $0 <command-id>"
+if [[ -z "$CMD_ID" || -z "$INSTANCE" ]]; then
+    echo "Usage: $0 <command-id> <instance-id>"
     exit 1
 fi
 
