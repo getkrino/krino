@@ -87,7 +87,7 @@ watch: ## Watch for changes and run checks
 	@echo "👀 Watching for changes..."
 	@cargo watch -x check -x test
 
-pre-commit: ## Install a personal pre-commit hook in .git/hooks/
+pre-commit: ## Install personal pre-commit and commit-msg hooks in .git/hooks/
 	@if [ -e .git/hooks/pre-commit ]; then \
 	    echo "🔗 .git/hooks/pre-commit already exists. Remove it first if you want a fresh one."; \
 	    exit 1; \
@@ -96,12 +96,48 @@ pre-commit: ## Install a personal pre-commit hook in .git/hooks/
 	    '#!/usr/bin/env bash' \
 	    '# Krino pre-commit hook. See CONTRIBUTING.md.' \
 	    'set -euo pipefail' \
-	    'cargo fmt --all -- --check' \
-	    'cargo clippy --workspace --all-targets --no-default-features -- -D warnings' \
-	    'cargo test --workspace --lib' \
+	    'echo "Running pre-commit checks..."' \
+	    'if ! cargo fmt --all -- --check; then' \
+	    '    echo "Formatting failed. Running cargo fmt --all to fix..."' \
+	    '    cargo fmt --all' \
+	    '    echo "Code formatted. Please review changes and re-stage."' \
+	    '    exit 1' \
+	    'fi' \
+	    'if ! cargo clippy --workspace --all-targets --no-default-features -- -D warnings; then' \
+	    '    echo "Clippy failed."' \
+	    '    exit 1' \
+	    'fi' \
+	    'if ! cargo test --workspace; then' \
+	    '    echo "Tests failed."' \
+	    '    exit 1' \
+	    'fi' \
+	    'echo "Pre-commit checks passed."' \
 	    > .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
-	@echo "✅ Pre-commit hook installed at .git/hooks/pre-commit"
+	@if [ -e .git/hooks/commit-msg ]; then \
+	    echo "🔗 .git/hooks/commit-msg already exists. Remove it first if you want a fresh one."; \
+	    exit 1; \
+	fi
+	@printf '%s\n' \
+	    '#!/usr/bin/env bash' \
+	    '# Krino commit-msg hook: enforces Conventional Commits. See CONTRIBUTING.md.' \
+	    '# Squash-merge PR titles become the commit subject on main, and the' \
+	    '# release workflow parses that subject for feat/fix/perf to decide' \
+	    '# whether to cut a release -- so a malformed subject silently skips one.' \
+	    'set -euo pipefail' \
+	    'PATTERN="^(feat|fix|perf|chore|docs|refactor|style|test|ci|build|revert)(\([a-z0-9_-]+\))?!?: .+"' \
+	    'SUBJECT=$$(head -n1 "$$1")' \
+	    'if [[ "$$SUBJECT" =~ ^Merge ]]; then exit 0; fi' \
+	    'if ! [[ "$$SUBJECT" =~ $$PATTERN ]]; then' \
+	    '    echo "Commit message does not follow Conventional Commits:"' \
+	    '    echo "  $$SUBJECT"' \
+	    '    echo "Expected: type(scope)?: description, e.g. \"feat: add per-request top_k override\""' \
+	    '    echo "Types: feat fix perf chore docs refactor style test ci build revert"' \
+	    '    exit 1' \
+	    'fi' \
+	    > .git/hooks/commit-msg
+	@chmod +x .git/hooks/commit-msg
+	@echo "✅ pre-commit and commit-msg hooks installed in .git/hooks/"
 
 ci: fmt-check clippy test ## Run all CI checks (format, clippy, tests)
 	@echo "✅ All CI checks passed!"
