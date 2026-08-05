@@ -1,79 +1,79 @@
 # Release procedure
 
-Krino uses manual releases. The `release.yml` workflow is triggered
-from the Actions tab; there is no automatic version bumping or
-auto-publishing on push to `main`. This is deliberate for the
-pre-1.0 period — once API and behavior stabilize, we'll revisit.
+Krino uses automatic releases. The `release.yml` workflow runs after
+every successful CI run on `main`. It inspects the commits since the
+last tag, and if any are `feat`, `fix`, or `perf` (per [Conventional
+Commits](https://www.conventionalcommits.org/)), it bumps the
+version, generates the changelog, tags, and publishes a release. No
+manual trigger is needed.
 
-## Steps
+## How it works
 
-### 1. Open a release branch
+On each push to `main` (via the `CI` workflow completing
+successfully):
 
-```bash
-git checkout main
-git pull
-git checkout -b release/0.X.Y
-```
+1. **Check for releasable commits** — commits since the last tag are
+   scanned for a `feat:`, `fix:`, or `perf:` prefix (optionally
+   scoped, e.g. `feat(api):`). If none are found, the workflow exits
+   without releasing.
+2. **Determine the version bump**:
+   - `!` after the type or scope (e.g. `feat!:`) or a `BREAKING
+     CHANGE:` footer → **major**
+   - `feat:` → **minor**
+   - `fix:` / `perf:` → **patch**
+   - The highest-priority bump among all qualifying commits wins.
+3. **Bump `Cargo.toml`**, update `Cargo.lock`, and generate
+   `CHANGELOG.md` via [`git-cliff`](https://git-cliff.org/) from the
+   commit history.
+4. **Commit and tag** as `release-deploy-app[bot]`, authenticated via
+   a GitHub App token (not the default `GITHUB_TOKEN`) so the pushed
+   commit and tag can themselves trigger downstream workflows.
+5. **Push** the version-bump commit and the `vX.Y.Z` tag to `main`.
+6. **Build release artifacts**: the `krino` CLI
+   (`-p krino --features cli --bin krino`) and the `krino-api` HTTP
+   server binary, in release mode.
+7. **Create a GitHub Release** with both binaries attached and the
+   generated changelog as the release body.
 
-### 2. Bump the version
+## Commit message conventions
 
-Edit the workspace `Cargo.toml`:
+Only commits with these prefixes trigger a release:
 
-```toml
-[workspace.package]
-version = "0.X.Y"
-```
+| Prefix | Effect |
+|---|---|
+| `feat:` | Minor bump |
+| `fix:` | Patch bump |
+| `perf:` | Patch bump |
+| `feat!:` / `fix!:` / `perf!:` or `BREAKING CHANGE:` footer | Major bump |
 
-Every member crate inherits this via `version.workspace = true`, so
-the bump propagates automatically.
+Other prefixes (`chore:`, `docs:`, `refactor:`, `test:`, `ci:`, etc.)
+don't trigger a release on their own, but still show up in the
+changelog `git-cliff` generates once a release does happen.
 
-Run `cargo check --workspace` to update `Cargo.lock`.
+## Authentication: the release-deploy-app
 
-### 3. Update the changelog
+The workflow authenticates as a GitHub App (`release-deploy-app`)
+rather than the workflow-scoped `GITHUB_TOKEN`, because pushes made
+with `GITHUB_TOKEN` don't trigger other GitHub Actions workflows —
+which would silently break `CI` running against the version-bump
+commit. The App's credentials live in this repo's settings:
 
-Move `[Unreleased]` content into a new versioned section:
+- `vars.RELEASE_DEPLOY_APP_ID` — the App's numeric ID (repo variable,
+  not secret; not sensitive on its own).
+- `secrets.RELEASE_DEPLOY_KEY` — the App's private key (`.pem`).
 
-```markdown
-## [Unreleased]
+## Manual intervention
 
-## [0.X.Y] - 2026-MM-DD
+There is no manual dispatch trigger. To force a release without a
+qualifying commit, merge a `fix:` or `chore: force release` commit
+(as `fix:`) to `main`. To skip a release despite a qualifying commit,
+there's currently no override — merge to a non-`main` branch first if
+you need to stage changes.
 
-### Added
-- ...
+## (Optional) Publish to crates.io
 
-### Changed
-- ...
-
-### Fixed
-- ...
-```
-
-Each entry should be a short user-facing description. PR numbers help
-("(#42)") but aren't required.
-
-### 4. Open a PR, get it merged
-
-Standard review. CI runs the same checks it always does.
-
-### 5. Trigger the release workflow
-
-1. Go to **Actions → Release → Run workflow**.
-2. Set the `version` input to `0.X.Y` (must match `Cargo.toml`).
-3. Click **Run workflow**.
-
-The workflow will:
-
-- Verify the input version matches the workspace `Cargo.toml`. (If
-  not, it fails immediately — bump `Cargo.toml` first.)
-- Build the `krino` CLI binary (`-p krino --features cli --bin krino`)
-  and the `krino-api` HTTP server binary in release mode.
-- Tag the commit `vX.Y.Z` and push the tag.
-- Create a GitHub Release with the two binaries attached.
-
-### 6. (Optional) Publish to crates.io
-
-The release workflow does **not** publish to crates.io today. If you
-want to:
+The release workflow does **not** publish to crates.io. If you want
+to:
 
 ```bash
 # In dependency order
@@ -105,6 +105,7 @@ Post-1.0, standard semver applies — breaking changes only on major.
 | `krino-linux-x64` | GitHub Releases | CLI binary built from `-p krino --features cli`. |
 | `krino-api-linux-x64` | GitHub Releases | HTTP server binary. |
 | Tagged source | `v0.X.Y` git tag | The point-in-time source. |
+| `CHANGELOG.md` | GitHub Release body + repo | Generated by `git-cliff`. |
 | crates.io | (manual, optional) | The three workspace crates. |
 | Docker image | (not yet) | Future work. |
 
@@ -113,8 +114,9 @@ Post-1.0, standard semver applies — breaking changes only on major.
 If a release ships with a critical regression:
 
 1. Don't delete the tag or release — they're a public record.
-2. Open a fix PR against `main` with the regression test.
-3. Once merged, cut a new patch release (`0.X.(Y+1)`).
+2. Open a fix PR against `main` with the regression test, using a
+   `fix:` commit message so it triggers the next patch release.
+3. Once merged, the release workflow cuts `0.X.(Y+1)` automatically.
 4. Update the release notes of the broken version with a "Known
    issue: use 0.X.(Y+1) instead" note.
 
