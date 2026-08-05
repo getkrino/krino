@@ -454,6 +454,6 @@ USER krino
 
 ## Support
 
-- **Issues:** https://github.com/smithjustinm/krino/issues
+- **Issues:** https://github.com/getkrino/krino/issues
 - **Documentation:** See `krino-api/README.md`
 - **Contact:** justin@krino.dev

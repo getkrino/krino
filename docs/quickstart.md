@@ -16,7 +16,7 @@ about five minutes.
 The engine ships without weights — you fetch them on first run.
 
 ```bash
-git clone https://github.com/smithjustinm/krino
+git clone https://github.com/getkrino/krino
 cd krino
 ./scripts/download_models.sh
 ```

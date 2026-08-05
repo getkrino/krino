@@ -17,7 +17,7 @@ how to propose changes, and the conventions the codebase follows.
 ### First-time setup
 
 ```bash
-git clone https://github.com/smithjustinm/krino
+git clone https://github.com/getkrino/krino
 cd krino
 cargo build
 ```

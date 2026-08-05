@@ -8,7 +8,7 @@
         groundedness for LLM outputs
 ```
 
-[![CI](https://github.com/smithjustinm/krino/actions/workflows/ci.yml/badge.svg)](https://github.com/smithjustinm/krino/actions/workflows/ci.yml)
+[![CI](https://github.com/getkrino/krino/actions/workflows/ci.yml/badge.svg)](https://github.com/getkrino/krino/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Krino is a self-hostable faithfulness engine for LLM outputs. Given a
@@ -29,7 +29,7 @@ The engine runs locally via ONNX. Verdicts are
 ## Quick start
 
 ```bash
-git clone https://github.com/smithjustinm/krino
+git clone https://github.com/getkrino/krino
 cd krino
 ./scripts/download_models.sh         # ~600 MB, takes a few minutes
 cp krino-api.toml.example krino-api.toml
