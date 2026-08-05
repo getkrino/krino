@@ -1,4 +1,4 @@
-.PHONY: help lint test check fmt fmt-check clippy clean build build-release doc bench install
+.PHONY: help lint test check fmt fmt-check clippy clean build build-release build-api doc bench install pre-commit watch ci
 
 .DEFAULT_GOAL := help
 
@@ -39,13 +39,17 @@ clean: ## Clean build artifacts
 	@echo "🧹 Cleaning build artifacts..."
 	@cargo clean
 
-build: ## Build debug binary
+build: ## Build debug binary (krino CLI)
 	@echo "🔨 Building debug binary..."
-	@cargo build --features cli
+	@cargo build -p krino --features cli --bin krino
 
-build-release: ## Build optimized release binary
+build-release: ## Build optimized release binary (krino CLI)
 	@echo "🔨 Building release binary..."
-	@cargo build --release --features cli
+	@cargo build --release -p krino --features cli --bin krino
+
+build-api: ## Build the krino-api HTTP server (release)
+	@echo "🔨 Building krino-api..."
+	@cargo build --release -p krino-api --bin krino-api
 
 doc: ## Generate and open documentation
 	@echo "📚 Generating documentation..."
@@ -77,16 +81,27 @@ bench-policy: ## Run policy compliance benchmarks
 
 install: ## Install krino CLI binary
 	@echo "📦 Installing krino CLI..."
-	@cargo install --path . --features cli
+	@cargo install --path krino --features cli
 
 watch: ## Watch for changes and run checks
 	@echo "👀 Watching for changes..."
 	@cargo watch -x check -x test
 
-pre-commit: ## Install git pre-commit hook
-	@echo "🔗 Installing pre-commit hook..."
+pre-commit: ## Install a personal pre-commit hook in .git/hooks/
+	@if [ -e .git/hooks/pre-commit ]; then \
+	    echo "🔗 .git/hooks/pre-commit already exists. Remove it first if you want a fresh one."; \
+	    exit 1; \
+	fi
+	@printf '%s\n' \
+	    '#!/usr/bin/env bash' \
+	    '# Krino pre-commit hook. See CONTRIBUTING.md.' \
+	    'set -euo pipefail' \
+	    'cargo fmt --all -- --check' \
+	    'cargo clippy --workspace --all-targets --no-default-features -- -D warnings' \
+	    'cargo test --workspace --lib' \
+	    > .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
-	@echo "✅ Pre-commit hook installed"
+	@echo "✅ Pre-commit hook installed at .git/hooks/pre-commit"
 
 ci: fmt-check clippy test ## Run all CI checks (format, clippy, tests)
 	@echo "✅ All CI checks passed!"

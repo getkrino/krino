@@ -1760,6 +1760,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "krino"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bytemuck",
+ "candle-core",
+ "candle-nn",
+ "candle-transformers",
+ "chrono",
+ "half",
+ "hex",
+ "hf-hub",
+ "jsonschema",
+ "ndarray",
+ "ort",
+ "rayon",
+ "regex",
+ "reqwest 0.12.28",
+ "safetensors",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 1.0.69",
+ "tokenizers",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1822,9 +1853,9 @@ dependencies = [
  "chrono",
  "clap",
  "dotenvy",
+ "krino",
  "reqwest 0.12.28",
  "serde_json",
- "",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3160,37 +3191,6 @@ checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
 dependencies = [
  "core-foundation-sys",
  "libc",
-]
-
-[[package]]
-name = ""
-version = "0.13.2"
-dependencies = [
- "anyhow",
- "async-trait",
- "bytemuck",
- "candle-core",
- "candle-nn",
- "candle-transformers",
- "chrono",
- "half",
- "hex",
- "hf-hub",
- "jsonschema",
- "ndarray",
- "ort",
- "rayon",
- "regex",
- "reqwest 0.12.28",
- "safetensors",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.69",
- "tokenizers",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

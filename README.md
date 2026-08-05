@@ -8,47 +8,53 @@
         groundedness for LLM outputs
 ```
 
+[![CI](https://github.com/smithjustinm/krino/actions/workflows/ci.yml/badge.svg)](https://github.com/smithjustinm/krino/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+
 Krino is a self-hostable faithfulness engine for LLM outputs. Given a
 context (retrieved documents, source text, reference material) and an
-output (what your model produced), Krino tells you which claims in the
-output are supported, contradicted, or unsupported by the context — and
-points at the specific sentences that justify each verdict.
+output (what your model produced), Krino tells you which claims in
+the output are supported, contradicted, or unsupported by the
+context — and points at the specific sentences that justify each
+verdict.
 
-The engine runs locally via ONNX, returns evidence-linked verdicts in
-under a second on typical inputs, and exposes everything as a simple
-HTTP API.
+The engine runs locally via ONNX. Verdicts are
+**deterministic by construction** (same inputs, same outputs) and
+**explainable** (every verdict carries evidence). No LLM-as-judge.
 
-> **Status:** pre-1.0. The HTTP API and engine outputs are stable, but
-> configuration field names and crate APIs may shift before 1.0.
+> **Status:** pre-1.0. The HTTP API and engine outputs are usable but
+> not yet stable — field names and crate APIs may change before the
+> 1.0 release.
 
 ## Quick start
 
 ```bash
-# 1. Run the server with the example config (Docker)
-docker run -p 8080:8080 ghcr.io/smithjustinm/krino:latest
-
-# 2. Verify
-curl -sS http://localhost:8080/health
-
-# 3. Send your first evaluation
-curl -sS -X POST http://localhost:8080/api/v1/evaluate \
-  -H 'Content-Type: application/json' \
-  -H 'x-api-key: dev-key' \
-  -d '{
-    "context": [{"text": "Rust was first released in 2015."}],
-    "output": "Rust shipped its first stable release in 2015."
-  }'
+git clone https://github.com/smithjustinm/krino
+cd krino
+./scripts/download_models.sh         # ~600 MB, takes a few minutes
+cp krino-api.toml.example krino-api.toml
+docker compose up --build
 ```
 
-See [`docs/quickstart.md`](docs/quickstart.md) for the full walkthrough,
-and [`docs/deployment.md`](docs/deployment.md) for production deployment
-guidance (systemd, AWS, worker tuning, observability).
+In another terminal:
+
+```bash
+curl -sS -X POST http://localhost:8080/api/v1/evaluate \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: sk-krino-replace-me' \
+  -d '{
+    "context": [{"id": "src1", "text": "Rust was first released in 2015."}],
+    "output": "Rust shipped its first stable release in 2015."
+  }' | jq
+```
+
+The full walkthrough is in [docs/quickstart.md](docs/quickstart.md).
 
 ## What Krino does
 
-- **Per-claim verdicts.** Splits LLM output into claims and classifies
-  each as `entailment`, `contradiction`, `neutral`, or `partial`
-  against the supplied context.
+- **Per-claim verdicts.** Splits LLM output into claims and
+  classifies each as `entailment`, `contradiction`, `neutral`, or
+  `partial` against the supplied context.
 - **Evidence tracing.** Every verdict links to the exact context
   sentence that justifies it, with NLI probabilities exposed.
 - **Compound claim handling.** Multi-fact claims that no single
@@ -62,24 +68,37 @@ guidance (systemd, AWS, worker tuning, observability).
 
 - Token-level granularity. The API accepts `granularity: "token"`
   but the engine only implements claim-level today.
-- GPU inference. CPU-only, AVX-512 VNNI recommended.
-- Streaming responses. The engine returns a single JSON body per
-  request.
+- GPU inference. CPU-only ONNX, AVX-512 VNNI recommended.
+- Streaming responses. Each `/evaluate` returns a single JSON body.
 
 ## System requirements
 
 - **CPU**: x86_64. AVX-512 VNNI strongly recommended (used by the
   INT8 quantized NLI model). ARM has not been tested.
 - **Memory**: 4 GB minimum. 8 GB recommended for production.
-- **Models**: ~600 MB on disk (RoBERTa-large MNLI INT8 + MiniLM-L6 embedding).
+- **Models**: ~600 MB on disk (RoBERTa-large MNLI INT8 + MiniLM-L6
+  embedding).
 
 ## Crates
 
-| Crate              | Purpose                                                   |
-|--------------------|-----------------------------------------------------------|
-| `krino`            | Engine library: NLI, embedding pre-filter, verdict logic. |
-| `krino-api`        | HTTP server binary built on the engine.                   |
-| `krino-api-types`  | Shared wire types between server and clients.             |
+| Crate             | Purpose                                                    |
+|-------------------|------------------------------------------------------------|
+| `krino`           | Engine library: NLI, embedding pre-filter, verdict logic.  |
+| `krino-api`       | HTTP server binary built on the engine.                    |
+| `krino-api-types` | Shared wire types between server and clients.              |
+
+## Documentation
+
+- [Quickstart](docs/quickstart.md) — 5-minute walkthrough.
+- [API reference](docs/api-reference.md) — every request and response field.
+- [Configuration reference](docs/configuration.md) — every field in `krino-api.toml`, with calibration notes.
+- [Deployment guide](docs/deployment.md) — Docker, AWS, systemd, worker tuning.
+- [Architecture](docs/architecture.md) — how the engine actually decides.
+- [Observability](docs/observability.md) — logs, `/metrics`, timing fields.
+- [Release procedure](docs/release.md) — how new versions ship.
+- [Contributing](CONTRIBUTING.md) — dev setup, code style, PR process.
+- [Security policy](SECURITY.md) — vulnerability reporting.
+- [Code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
