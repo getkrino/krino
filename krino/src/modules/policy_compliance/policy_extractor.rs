@@ -156,11 +156,8 @@ impl PolicyExtractor {
             ConstraintType::Require
         } else if Self::is_conditional_rule(text) {
             // Extract trigger condition
-            if let Some(trigger) = Self::extract_conditional_trigger(text) {
-                ConstraintType::Conditional { trigger }
-            } else {
-                return None;
-            }
+            let trigger = Self::extract_conditional_trigger(text)?;
+            ConstraintType::Conditional { trigger }
         } else {
             // Default to Inform for ambiguous rules
             ConstraintType::Inform
