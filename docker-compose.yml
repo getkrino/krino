@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  krino-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - KRINO_LOGGING__FORMAT=pretty
+      - KRINO_LOGGING__LEVEL=debug
+      - KRINO_SERVER__PORT=8080
+    volumes:
+      # Models are mounted at runtime — download with scripts/download_models.sh.
+      - ./models:/opt/krino/models:ro
+      # Config is operator-supplied — copy krino-api.toml.example to krino-api.toml first.
+      - ./krino-api.toml:/opt/krino/krino-api.toml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

@@ -1,0 +1,16 @@
+[project]
+name = "scripts"
+version = "0.1.0"
+description = "Model export and validation scripts for Krino"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "optimum[onnxruntime]>=2.1.0",
+    "transformers>=4.36.0",
+    "torch>=2.1.0",
+    "onnxruntime>=1.16.0",
+    "onnxscript>=0.6.2",
+    "datasets>=2.18.0",
+    "numpy>=1.24.0",
+    "onnx>=1.14.0",
+]

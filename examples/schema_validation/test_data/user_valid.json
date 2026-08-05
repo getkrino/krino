@@ -1,0 +1,16 @@
+{
+  "name": "Alice Johnson",
+  "age": 30,
+  "email": "alice.johnson@example.com",
+  "phone": "+14155552671",
+  "address": {
+    "street": "123 Main St",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip": "94102"
+  },
+  "preferences": {
+    "newsletter": true,
+    "theme": "dark"
+  }
+}

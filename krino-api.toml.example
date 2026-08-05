@@ -1,0 +1,57 @@
+# Krino API configuration.
+#
+# Copy this file to `krino-api.toml` and edit. Each [section] field can be
+# overridden by an environment variable with the KRINO_ prefix — for example,
+# `KRINO_SERVER__PORT=9000` overrides `[server].port`.
+#
+# Replace the API keys before deploying anywhere reachable.
+
+[server]
+port = 8080
+
+[models]
+# Default: download with `scripts/download_models.sh` and they land here.
+nli_model_path       = "models/roberta-large-mnli-static-int8"
+embedding_model_path = "models/all-MiniLM-L6-v2-onnx-quantized"
+
+[faithfulness]
+default_top_k = 10
+default_threshold = 0.7
+# Calibrated for RoBERTa-large MNLI INT8. FP32 models can push this to 0.7+.
+contradiction_threshold = 0.5
+# Cosine similarity floor for NLI candidate selection.
+min_similarity_threshold = 0.25
+# When true, per-claim top-K scales with claim length:
+# clamp(ceil(claim_chars / 40), 3, default_top_k). Saves NLI calls on short
+# claims but can drop relevant evidence on inputs with many similarly-ranked
+# candidates — leave false unless you've measured.
+adaptive_top_k = false
+max_context_chars = 500000
+max_output_chars = 50000
+available_granularities = ["claim"]
+
+[auth]
+# Replace these. API keys are hashed (SHA-256) at startup.
+[[auth.api_keys]]
+customer_id = "default"
+key = "sk-krino-replace-me"
+
+[rate_limit]
+requests_per_minute = 60
+burst = 10
+
+[logging]
+level = "info"
+format = "json"     # "json" for production, "pretty" for dev.
+ort_level = "warn"  # Suppress ONNX Runtime arena allocator chatter.
+
+[workers]
+# Single worker + threads_per_worker = vCPUs - 1 maximizes single-request
+# latency on a typical 8-vCPU host. Set n_workers = 2+ if concurrent
+# throughput matters more than per-request speed.
+n_workers = 1
+threads_per_worker = 7
+queue_depth = 1
+# NLI pairs per ORT forward pass. Higher values amortize setup cost; lower
+# values bound peak memory.
+batch_size = 16

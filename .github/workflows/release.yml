@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+
+    steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859
+        with:
+          app-id: ${{ vars.RELEASE_DEPLOY_APP_ID }}
+          private-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install git-cliff
+        run: |
+          cargo install git-cliff
+          git-cliff --version
+
+      - name: Check for releasable commits
+        id: check_commits
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"%s" ${LAST_TAG}..HEAD)
+          fi
+
+          echo "Commits since last release:"
+          echo "$COMMITS"
+
+          if echo "$COMMITS" | grep -qE "^(feat|fix|perf)(\(.+\))?!?:"; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+
+            if echo "$COMMITS" | grep -qE "^(feat|fix|perf)(\(.+\))?!:|BREAKING CHANGE:"; then
+              echo "bump_type=major" >> $GITHUB_OUTPUT
+            elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+              echo "bump_type=minor" >> $GITHUB_OUTPUT
+            else
+              echo "bump_type=patch" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "No releasable commits found (feat/fix/perf)"
+          fi
+
+      - name: Determine next version
+        id: next_version
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "Current version: $CURRENT_VERSION"
+
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+          BUMP_TYPE="${{ steps.check_commits.outputs.bump_type }}"
+
+          if [ "$BUMP_TYPE" = "major" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          NEXT_VERSION="${major}.${minor}.${patch}"
+          echo "Next version: $NEXT_VERSION"
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in Cargo.toml
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          VERSION="${{ steps.next_version.outputs.version }}"
+          sed -i "0,/^version = /{s/^version = .*/version = \"$VERSION\"/}" Cargo.toml
+          git diff Cargo.toml
+
+      - name: Update Cargo.lock
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: cargo check --workspace
+
+      - name: Generate changelog
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          git-cliff --tag v${{ steps.next_version.outputs.version }} > CHANGELOG.md
+
+      - name: Commit version bump
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          git config user.name "release-deploy-app[bot]"
+          git config user.email "${{ vars.RELEASE_DEPLOY_APP_ID }}+release-deploy-app[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git commit -m "chore(release): prepare for v${{ steps.next_version.outputs.version }}"
+          git tag -a "v${{ steps.next_version.outputs.version }}" -m "Release v${{ steps.next_version.outputs.version }}"
+
+      - name: Push changes and tag
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          git push origin main
+          git push origin v${{ steps.next_version.outputs.version }}
+
+      - name: Build release artifacts
+        if: steps.check_commits.outputs.should_release == 'true'
+        run: |
+          cargo build --release --package krino --features cli --bin krino
+          cargo build --release --package krino-api --bin krino-api
+          mkdir -p release-artifacts
+          cp target/release/krino release-artifacts/krino-linux-x64
+          cp target/release/krino-api release-artifacts/krino-api-linux-x64
+          chmod +x release-artifacts/krino-linux-x64 release-artifacts/krino-api-linux-x64
+
+      - name: Create GitHub Release
+        if: steps.check_commits.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.next_version.outputs.version }}
+          name: Release v${{ steps.next_version.outputs.version }}
+          body_path: CHANGELOG.md
+          files: |
+            release-artifacts/krino-linux-x64
+            release-artifacts/krino-api-linux-x64
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: No release needed
+        if: steps.check_commits.outputs.should_release != 'true'
+        run: |
+          echo "No releasable commits found. Skipping release."
+          echo "Only feat/fix/perf commits trigger releases."

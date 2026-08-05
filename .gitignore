@@ -25,10 +25,11 @@ target
 krino-api.toml
 
 # Model weights — pulled by scripts/download_models.sh, not committed.
-models/
+/models/
+/scripts/models/
 
 # Editor / OS noise
 .DS_Store
 *.swp
 *.swo
-
+**.pem
