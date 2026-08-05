@@ -32,4 +32,4 @@ krino-api.toml
 .DS_Store
 *.swp
 *.swo
-
+**.pem
