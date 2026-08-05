@@ -52,7 +52,7 @@ make pre-commit
 ```
 
 This writes `.git/hooks/pre-commit` that runs `cargo fmt --check`,
-`cargo clippy -D warnings`, and `cargo test --workspace --lib` on every
+`cargo clippy -D warnings`, and `cargo test --workspace` on every
 commit. Skip in a pinch with `git commit --no-verify` — CI runs the
 same checks anyway.
 
@@ -63,12 +63,16 @@ same checks anyway.
 - Branch off `main`.
 - Keep PRs focused. Smaller is easier to review.
 - Tests for new behavior. Bug fixes get a regression test.
-- Update `CHANGELOG.md` under `[Unreleased]` for user-facing changes.
+- Give the PR a Conventional Commit title (see below) — `CHANGELOG.md`
+  is generated from it, not hand-edited.
 - Run `make ci` locally; CI runs the same.
 
-### Commit messages
+### Commit messages and PR titles
 
-Conventional Commits style is encouraged but not enforced:
+We squash-merge, and the squash commit's subject becomes the PR
+title — so **your PR title must be a Conventional Commit**, since
+that's what drives releases (see
+[docs/release.md](docs/release.md)). CI lints this on every PR.
 
 ```
 feat: add per-request top_k override
@@ -77,8 +81,14 @@ docs: clarify partial verdict semantics
 chore: bump tokenizers to 0.21
 ```
 
-The CHANGELOG is human-edited; we don't auto-derive it from commit
-messages.
+Individual commits within a PR can be messier (fixups, WIP) since
+they get squashed away — but keep the PR title accurate to what's
+actually shipping. Only `feat`, `fix`, and `perf` trigger a release;
+`chore`, `docs`, `refactor`, `test`, `ci`, and `build` are allowed but
+won't bump the version.
+
+The changelog is auto-generated from these titles by `git-cliff` at
+release time — it isn't hand-edited.
 
 ### Code style
 
