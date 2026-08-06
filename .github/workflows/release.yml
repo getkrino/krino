@@ -16,10 +16,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release:
-    name: Create Release
+  prepare:
+    name: Prepare release
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    outputs:
+      should_release: ${{ steps.check_commits.outputs.should_release }}
+      version: ${{ steps.next_version.outputs.version }}
 
     steps:
       - name: Generate App Token
@@ -129,33 +132,97 @@ jobs:
           git push origin main
           git push origin v${{ steps.next_version.outputs.version }}
 
-      - name: Build release artifacts
-        if: steps.check_commits.outputs.should_release == 'true'
+  build:
+    name: Build (${{ matrix.target }})
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: macos-x64
+            os: macos-13
+          - target: macos-arm64
+            os: macos-latest
+          - target: windows-x64
+            os: windows-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Build release artifacts (Unix)
+        if: runner.os != 'Windows'
         run: |
           cargo build --release --package krino --features cli --bin krino
           cargo build --release --package krino-api --bin krino-api
           mkdir -p release-artifacts
-          cp target/release/krino release-artifacts/krino-linux-x64
-          cp target/release/krino-api release-artifacts/krino-api-linux-x64
-          chmod +x release-artifacts/krino-linux-x64 release-artifacts/krino-api-linux-x64
+          cp target/release/krino release-artifacts/krino-${{ matrix.target }}
+          cp target/release/krino-api release-artifacts/krino-api-${{ matrix.target }}
+          chmod +x release-artifacts/krino-${{ matrix.target }} release-artifacts/krino-api-${{ matrix.target }}
+
+      - name: Build release artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cargo build --release --package krino --features cli --bin krino
+          cargo build --release --package krino-api --bin krino-api
+          mkdir -p release-artifacts
+          cp target/release/krino.exe release-artifacts/krino-${{ matrix.target }}.exe
+          cp target/release/krino-api.exe release-artifacts/krino-api-${{ matrix.target }}.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: release-artifacts/*
+          retention-days: 1
+
+  publish:
+    name: Create Release
+    needs: [prepare, build]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-artifacts
+          merge-multiple: true
 
       - name: Create GitHub Release
-        if: steps.check_commits.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.next_version.outputs.version }}
-          name: Release v${{ steps.next_version.outputs.version }}
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: Release v${{ needs.prepare.outputs.version }}
           body_path: CHANGELOG.md
-          files: |
-            release-artifacts/krino-linux-x64
-            release-artifacts/krino-api-linux-x64
+          files: release-artifacts/*
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: No release needed
-        if: steps.check_commits.outputs.should_release != 'true'
-        run: |
+  no-release:
+    name: No release needed
+    needs: prepare
+    if: needs.prepare.outputs.should_release != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
           echo "No releasable commits found. Skipping release."
           echo "Only feat/fix/perf commits trigger releases."
