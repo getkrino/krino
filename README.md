@@ -50,6 +50,21 @@ curl -sS -X POST http://localhost:8080/api/v1/evaluate \
 
 The full walkthrough is in [docs/quickstart.md](docs/quickstart.md).
 
+## CLI
+
+Krino also ships a standalone `krino` CLI for one-off checks without
+running the server:
+
+```bash
+curl -sSf https://raw.githubusercontent.com/getkrino/krino/main/install.sh | sh
+krino validate-schema --json '{"a":1}' --schema schema.json
+```
+
+`install.sh` downloads the latest `krino-linux-x64` release binary — no
+Rust toolchain or Docker required. See [CLI usage](docs/cli.md) for
+every subcommand, or build from source with `make install`
+(`cargo install --path krino --features cli`).
+
 ## What Krino does
 
 - **Per-claim verdicts.** Splits LLM output into claims and
@@ -70,6 +85,9 @@ The full walkthrough is in [docs/quickstart.md](docs/quickstart.md).
   but the engine only implements claim-level today.
 - GPU inference. CPU-only ONNX, AVX-512 VNNI recommended.
 - Streaming responses. Each `/evaluate` returns a single JSON body.
+- The CLI's `eval-hallucination` subcommand. It requires a Candle
+  ModernBERT token-classification model, and no script or published
+  weights produce one yet — see [CLI usage](docs/cli.md#eval-hallucination-not-yet-usable).
 
 ## System requirements
 
@@ -83,13 +101,14 @@ The full walkthrough is in [docs/quickstart.md](docs/quickstart.md).
 
 | Crate             | Purpose                                                    |
 |-------------------|------------------------------------------------------------|
-| `krino`           | Engine library: NLI, embedding pre-filter, verdict logic.  |
+| `krino`           | Engine library (NLI, embedding pre-filter, verdict logic) plus the standalone `krino` CLI binary (`--features cli`). |
 | `krino-api`       | HTTP server binary built on the engine.                    |
 | `krino-api-types` | Shared wire types between server and clients.              |
 
 ## Documentation
 
 - [Quickstart](docs/quickstart.md) — 5-minute walkthrough.
+- [CLI usage](docs/cli.md) — the `krino` binary: install, subcommands, known gaps.
 - [API reference](docs/api-reference.md) — every request and response field.
 - [Configuration reference](docs/configuration.md) — every field in `krino-api.toml`, with calibration notes.
 - [Deployment guide](docs/deployment.md) — Docker, AWS, systemd, worker tuning.

@@ -124,6 +124,8 @@ the overall `score` drops.
 
 ## What's next
 
+- [CLI usage](cli.md) — the standalone `krino` binary, for one-off
+  checks without running the server.
 - [API reference](api-reference.md) — every request/response field, all
   request-time overrides (matrix output, per-request top-K).
 - [Configuration reference](configuration.md) — every field in
