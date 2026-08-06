@@ -3,23 +3,46 @@
 #
 #   curl -sSf https://raw.githubusercontent.com/getkrino/krino/main/install.sh | sh
 #
-# Only linux-x64 release binaries are published today. Other platforms
-# must build from source: `make install` (see CONTRIBUTING.md).
+# Supports linux-x64, macos-x64, and macos-arm64. Windows binaries are
+# published too (krino-windows-x64.exe) but this is a POSIX script —
+# Windows users should download the .exe from GitHub Releases directly,
+# or build from source (see docs/cli.md#platform-support).
 set -eu
 
 REPO="getkrino/krino"
-BINARY="krino-linux-x64"
 
 os=$(uname -s)
 arch=$(uname -m)
 
-if [ "$os" != "Linux" ] || [ "$arch" != "x86_64" ]; then
+case "$os" in
+    Linux)
+        case "$arch" in
+            x86_64) target="linux-x64" ;;
+            *) target="" ;;
+        esac
+        ;;
+    Darwin)
+        case "$arch" in
+            x86_64) target="macos-x64" ;;
+            arm64) target="macos-arm64" ;;
+            *) target="" ;;
+        esac
+        ;;
+    *)
+        target=""
+        ;;
+esac
+
+if [ -z "$target" ]; then
     echo "error: no prebuilt krino binary for $os/$arch." >&2
-    echo "Only linux-x64 is published (see docs/cli.md#platform-support)." >&2
-    echo "Build from source instead:" >&2
+    echo "Supported: linux-x64, macos-x64, macos-arm64 (see docs/cli.md#platform-support)." >&2
+    echo "Windows: download krino-windows-x64.exe from GitHub Releases directly." >&2
+    echo "Otherwise, build from source:" >&2
     echo "  git clone https://github.com/$REPO && cd krino && make install" >&2
     exit 1
 fi
+
+BINARY="krino-$target"
 
 if [ -w /usr/local/bin ]; then
     install_dir="/usr/local/bin"
