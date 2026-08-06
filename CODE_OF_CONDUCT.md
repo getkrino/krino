@@ -9,7 +9,7 @@ terms.
 
 ## Reporting
 
-If you experience or witness behavior that violates the Contributor Covenant, please report it by emailing **smith.justinmatthew@gmail.com**. Reports are reviewed by the
+If you experience or witness behavior that violates the Contributor Covenant, please report it by emailing **thinkingincode@proton.me**. Reports are reviewed by the
 project maintainer and kept confidential.
 
 Reports should include:

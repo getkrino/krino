@@ -16,7 +16,7 @@ When 1.0 ships, this table will list the supported release line.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email **smith.justinmatthew@gmail.com** with:
+Email **thinkingincode@proton.me** with:
 
 - A description of the vulnerability and its impact.
 - A reproducer — the smallest possible request, configuration, or
