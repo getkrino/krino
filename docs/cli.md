@@ -11,10 +11,10 @@ built from the same crate as the engine library, gated behind the
 curl -sSf https://raw.githubusercontent.com/getkrino/krino/main/install.sh | sh
 ```
 
-This downloads the `krino-linux-x64` binary from the latest GitHub
-Release and installs it to `~/.local/bin` (or `/usr/local/bin` if
-writable and `~/.local/bin` isn't on `PATH`). Only Linux x86_64 is
-published today — see [Platform support](#platform-support).
+This detects your OS/arch, downloads the matching binary from the
+latest GitHub Release, and installs it to `~/.local/bin` (or
+`/usr/local/bin` if writable and `~/.local/bin` isn't on `PATH`). See
+[Platform support](#platform-support) for what's covered.
 
 **From source**, if you need another platform or want a dev build:
 
@@ -99,7 +99,20 @@ Track this in the repo issues before depending on it in a pipeline.
 
 ## Platform support
 
-Release binaries are built for `x86_64-unknown-linux-gnu` only (see
-[`release.yml`](../.github/workflows/release.yml)). macOS and ARM
-users should build from source with `make install`; `install.sh` will
-refuse to run rather than install the wrong binary.
+Release binaries are built for four targets (see
+[`release.yml`](../.github/workflows/release.yml)):
+
+| Target | Asset | `install.sh` |
+|---|---|---|
+| Linux x86_64 | `krino-linux-x64` | ✅ |
+| macOS x86_64 (Intel) | `krino-macos-x64` | ✅ |
+| macOS arm64 (Apple Silicon) | `krino-macos-arm64` | ✅ |
+| Windows x86_64 | `krino-windows-x64.exe` | ❌ download from [Releases](https://github.com/getkrino/krino/releases) directly |
+
+`install.sh` is a POSIX script and only supports the three Unix
+targets; it refuses to run on anything else rather than installing the
+wrong binary. `krino-api` binaries ship alongside the CLI for the same
+four targets, matching what `docs/release.md` documents.
+
+Linux arm64 isn't published yet — build from source with
+`make install` on that platform.

@@ -60,10 +60,12 @@ curl -sSf https://raw.githubusercontent.com/getkrino/krino/main/install.sh | sh
 krino validate-schema --json '{"a":1}' --schema schema.json
 ```
 
-`install.sh` downloads the latest `krino-linux-x64` release binary — no
-Rust toolchain or Docker required. See [CLI usage](docs/cli.md) for
-every subcommand, or build from source with `make install`
-(`cargo install --path krino --features cli`).
+`install.sh` detects your platform (Linux/macOS, x64/arm64) and
+downloads the matching release binary — no Rust toolchain or Docker
+required. Windows: grab `krino-windows-x64.exe` from
+[Releases](https://github.com/getkrino/krino/releases). See
+[CLI usage](docs/cli.md) for every subcommand, or build from source
+with `make install` (`cargo install --path krino --features cli`).
 
 ## What Krino does
 
