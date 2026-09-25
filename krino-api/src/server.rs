@@ -23,6 +23,10 @@ pub fn create_router(state: AppState) -> Router {
             "/v1/evaluate",
             axum::routing::post(routes::evaluate::evaluate),
         )
+        .route(
+            "/v1/extraction-confidence",
+            axum::routing::post(routes::extraction_confidence::extraction_confidence),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

@@ -163,6 +163,54 @@ pub struct MetaResponse {
     pub engine_version: String,
 }
 
+/// A single field an LLM claims to have extracted from a source document.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractedFieldRequest {
+    /// Field name, e.g. `"invoice_total"`.
+    pub name: String,
+    /// Extracted value, as text.
+    pub value: String,
+    /// `"string"` | `"number"` | `"boolean"`.
+    pub value_type: String,
+}
+
+/// POST /api/v1/extraction-confidence — request body.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractionConfidenceRequest {
+    /// Source document the fields were extracted from. Required, non-empty.
+    pub source: Vec<ContextChunk>,
+    /// Fields to score. Required, non-empty.
+    pub fields: Vec<ExtractedFieldRequest>,
+}
+
+/// Confidence result for a single extracted field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FieldConfidenceResponse {
+    pub name: String,
+    pub value: String,
+    /// Composite confidence score in `[0.0, 1.0]`.
+    pub confidence: f64,
+    /// `"grounded"` | `"partially_grounded"` | `"ungrounded"` | `"not_found"`.
+    pub verdict: String,
+    /// `"exact_substring"` | `"nli_entailment"` | `"no_match"`.
+    pub match_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<EvidenceResponse>,
+}
+
+/// POST /api/v1/extraction-confidence — response body.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractionConfidenceResponse {
+    pub fields: Vec<FieldConfidenceResponse>,
+    /// Mean confidence across all fields. `1.0` when `fields` is empty.
+    pub overall_confidence: f64,
+    /// Fraction of fields with a decisive verdict (anything except
+    /// `no_match`). Low values mean the headline score should be read with
+    /// caution.
+    pub engine_confidence: f64,
+    pub meta: MetaResponse,
+}
+
 /// POST /api/v1/evaluate — response body.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvaluateResponse {

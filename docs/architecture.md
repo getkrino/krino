@@ -242,6 +242,31 @@ engine protects against them:
 
 A determinism regression is treated as a bug, not a tuning question.
 
+## Extraction confidence
+
+`POST /api/v1/extraction-confidence` reuses this entire pipeline rather
+than introducing a new one. An "extraction" is a set of `{field: value}`
+pairs an LLM claims to have pulled from a source document. For each
+field, the engine builds a one-sentence synthetic claim (`"{field} is
+{value}"`) and runs it through `GroundednessChecker::check_with_overrides`
+exactly as if it were a single-sentence summary being checked against the
+source as context.
+
+The resulting per-claim verdict becomes the field's confidence:
+
+- Substring fast-path hit → `confidence = 1.0`, `match_kind =
+  exact_substring`. Common case: the extraction quoted the source
+  verbatim.
+- NLI entailment → `confidence = entailment_prob`, `match_kind =
+  nli_entailment`.
+- No supporting evidence found at all → `confidence = 0.0`, `verdict =
+  not_found`. This is the hallucinated-field signal: the LLM extracted a
+  value that isn't anywhere in the document.
+
+See `krino/src/modules/extraction_confidence.rs`. No new model, no new
+inference path — this module is pure orchestration over the groundedness
+engine, which is why it inherits the same determinism guarantees.
+
 ## What's deliberately not here
 
 - **No LLM-as-judge.** Krino's verdicts come from NLI models — small,
