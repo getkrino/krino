@@ -8,6 +8,7 @@
 //! All functions in this module are deterministic. Same input always produces
 //! the same output.
 
+pub mod extraction_confidence;
 pub mod groundedness;
 pub mod hallucination;
 pub mod policy_compliance;

@@ -145,6 +145,97 @@ Per claim:
 See [architecture.md](architecture.md) for the algorithm that produces
 each verdict.
 
+## `POST /api/v1/extraction-confidence`
+
+Score confidence for a set of LLM-extracted structured fields against a
+source document. Each field is composed into a synthetic claim
+sentence (`"{name} is {value}"`) and run through the same groundedness
+pipeline as `/evaluate`. The resulting entailment probability (or a
+substring exact-match) becomes the field's confidence score — a
+grounded, explainable alternative to trusting the extracting LLM's own
+self-reported confidence.
+
+### Request body
+
+```json
+{
+  "source": [
+    {"id": "doc1", "text": "Invoice #4471. Vendor: Acme Corp. Total due: $1,204.50."}
+  ],
+  "fields": [
+    {"name": "vendor", "value": "Acme Corp", "value_type": "string"},
+    {"name": "invoice_total", "value": "1,204.50", "value_type": "number"}
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `source` | `Array<ContextChunk>` | yes | The document the fields were extracted from. Must contain at least one entry. |
+| `fields` | `Array<ExtractedFieldRequest>` | yes | The extracted fields to score. Must contain at least one entry. |
+
+**`ExtractedFieldRequest`**
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Field name, e.g. `"invoice_total"`. |
+| `value` | `string` | The extracted value, as text. |
+| `value_type` | `"string"` \| `"number"` \| `"boolean"` | Drives how the synthetic claim sentence is rendered. |
+
+### Response body
+
+```json
+{
+  "fields": [
+    {
+      "name": "vendor",
+      "value": "Acme Corp",
+      "confidence": 1.0,
+      "verdict": "grounded",
+      "match_kind": "exact_substring",
+      "evidence": {
+        "text": "Vendor: Acme Corp.",
+        "entailment_prob": 1.0,
+        "contradiction_prob": 0.0
+      }
+    }
+  ],
+  "overall_confidence": 1.0,
+  "engine_confidence": 1.0,
+  "meta": { "...": "same shape as /evaluate's meta" }
+}
+```
+
+**`FieldConfidenceResponse`**
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Field name, echoed back. |
+| `value` | `string` | Field value, echoed back. |
+| `confidence` | `number` (0.0–1.0) | Composite confidence score. `1.0` when the value matched the source verbatim; otherwise the NLI entailment probability. |
+| `verdict` | `string` | `"grounded"`, `"partially_grounded"`, `"ungrounded"`, or `"not_found"`. See below. |
+| `match_kind` | `string` | `"exact_substring"`, `"nli_entailment"`, or `"no_match"` — how the confidence was established. |
+| `evidence` | `EvidenceResponse?` | The source sentence that best supports or contradicts this field, if any was found. |
+
+Top-level response also includes:
+
+| Field | Type | Description |
+|---|---|---|
+| `overall_confidence` | `number` | Mean confidence across all fields. |
+| `engine_confidence` | `number` | Fraction of fields with a decisive verdict (anything except `not_found`). Low values mean the extraction as a whole should be treated with caution. |
+
+### Field verdicts
+
+- **`grounded`** — Confidence is at or above the configured threshold
+  (default 0.7). The value is well-supported by the source.
+- **`partially_grounded`** — Some support was found, but confidence is
+  below the threshold — worth a second look, not necessarily wrong.
+- **`ungrounded`** — The source appears to state something else for
+  this field (an NLI contradiction was detected).
+- **`not_found`** — No matching evidence anywhere in the source. This is
+  the likely-hallucinated-field case: the extracting LLM produced a
+  value that isn't in the document at all.
+
 ## `GET /health`
 
 Liveness probe. Always returns 200 with `{"status": "ok"}` if the

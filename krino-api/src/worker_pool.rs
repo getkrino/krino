@@ -3,6 +3,10 @@ use std::sync::Arc;
 
 use krino::models::backends::onnx::{OnnxConfig, OnnxEmbeddingBackend, OnnxSequenceClassifier};
 use krino::models::inference::EmbeddingSimilarity;
+use krino::modules::extraction_confidence::{
+    ExtractedField, ExtractionConfidenceChecker, ExtractionConfidenceConfig,
+    ExtractionConfidenceResult,
+};
 use krino::modules::groundedness::{
     GroundednessChecker, GroundednessConfig, GroundednessResult, RequestOverrides,
 };
@@ -10,11 +14,22 @@ use krino::modules::groundedness::{
 use crate::config::WorkerPoolConfig;
 use crate::error::ApiError;
 
-struct WorkItem {
+struct EvaluateWorkItem {
     context: String,
     output: String,
     overrides: RequestOverrides,
     reply: tokio::sync::oneshot::Sender<Result<GroundednessResult, String>>,
+}
+
+struct ExtractionConfidenceWorkItem {
+    source: String,
+    fields: Vec<ExtractedField>,
+    reply: tokio::sync::oneshot::Sender<Result<ExtractionConfidenceResult, String>>,
+}
+
+enum WorkItem {
+    Evaluate(EvaluateWorkItem),
+    ExtractionConfidence(ExtractionConfidenceWorkItem),
 }
 
 pub struct WorkerPool {
@@ -52,8 +67,20 @@ impl WorkerPool {
                 embedding_model_path,
             )?) as Arc<dyn EmbeddingSimilarity>;
 
-            let checker =
-                GroundednessChecker::new(nli_backend, embedding_backend, faithfulness_config);
+            let checker = GroundednessChecker::new(
+                nli_backend.clone(),
+                embedding_backend.clone(),
+                faithfulness_config.clone(),
+            );
+
+            // Extraction confidence reuses the same loaded backends (Arc
+            // clones — no second model load) with its own checker instance,
+            // since each request needs one call per field and the two
+            // pipelines run independently within a worker.
+            let extraction_checker = ExtractionConfidenceChecker::new(
+                GroundednessChecker::new(nli_backend, embedding_backend, faithfulness_config),
+                ExtractionConfidenceConfig::default(),
+            );
 
             // Isolated Rayon pool — never touches the global pool.
             let rayon_pool = rayon::ThreadPoolBuilder::new()
@@ -68,17 +95,30 @@ impl WorkerPool {
                 .name(format!("krino-worker{worker_idx}"))
                 .spawn(move || {
                     while let Ok(item) = rx.recv_blocking() {
-                        let result = rayon_pool
-                            .install(|| {
-                                checker.check_with_overrides(
-                                    &item.context,
-                                    &item.output,
-                                    item.overrides,
-                                )
-                            })
-                            .map_err(|e| e.to_string());
-                        // Receiver gone means the request timed out or was dropped — ignore.
-                        let _ = item.reply.send(result);
+                        match item {
+                            WorkItem::Evaluate(item) => {
+                                let result = rayon_pool
+                                    .install(|| {
+                                        checker.check_with_overrides(
+                                            &item.context,
+                                            &item.output,
+                                            item.overrides,
+                                        )
+                                    })
+                                    .map_err(|e| e.to_string());
+                                // Receiver gone means the request timed out or
+                                // was dropped — ignore.
+                                let _ = item.reply.send(result);
+                            }
+                            WorkItem::ExtractionConfidence(item) => {
+                                let result = rayon_pool
+                                    .install(|| {
+                                        extraction_checker.check(&item.source, &item.fields)
+                                    })
+                                    .map_err(|e| e.to_string());
+                                let _ = item.reply.send(result);
+                            }
+                        }
                     }
                     tracing::info!(worker = worker_idx, "Worker shut down");
                 })?;
@@ -98,12 +138,37 @@ impl WorkerPool {
         let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
 
         self.tx
-            .try_send(WorkItem {
+            .try_send(WorkItem::Evaluate(EvaluateWorkItem {
                 context,
                 output,
                 overrides,
                 reply: reply_tx,
-            })
+            }))
+            .map_err(|_| {
+                ApiError::service_unavailable("All inference workers are busy. Retry in a moment.")
+            })?;
+
+        reply_rx
+            .await
+            .map_err(|_| ApiError::internal("Worker died before returning a result"))?
+            .map_err(ApiError::internal)
+    }
+
+    pub async fn check_extraction_confidence(
+        &self,
+        source: String,
+        fields: Vec<ExtractedField>,
+    ) -> Result<ExtractionConfidenceResult, ApiError> {
+        let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+
+        self.tx
+            .try_send(WorkItem::ExtractionConfidence(
+                ExtractionConfidenceWorkItem {
+                    source,
+                    fields,
+                    reply: reply_tx,
+                },
+            ))
             .map_err(|_| {
                 ApiError::service_unavailable("All inference workers are busy. Retry in a moment.")
             })?;
